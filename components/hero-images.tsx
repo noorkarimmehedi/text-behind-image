@@ -5,7 +5,7 @@ import { LayoutGrid } from "./ui/layout-grid";
 import POV from '@/public/pov.png'
 import Ride from '@/public/ride.png'
 import SF from '@/public/sf.png'
-import Goats from '@/public/goats.png'
+import POV2 from '@/public/POV2.png'
 
 export function HeroImages() {
   return (
@@ -88,9 +88,8 @@ const cards = [
     id: 3,
     content: <SkeletonThree />,
     className: "col-span-1",
-    thumbnail: Goats
+    thumbnail: POV2
   },
-  
   {
     id: 4,
     content: <SkeletonFour />,
