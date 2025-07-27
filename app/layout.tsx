@@ -13,8 +13,16 @@ import { Footer } from "@/components/ui/footer-section";
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Text Behind Image",
-  description: "Create text behind image designs",
+  title: "Text Behind Objects",
+  description: "Create text behind image designs in seconds",
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        href: '/favicon.svg',
+      }
+    ]
+  }
 };
 
 export default function RootLayout({
@@ -24,7 +32,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={GeistSans.className} data-page="landing">
+      <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      </head>
+      <body className={GeistSans.className}>
         <SupabaseProvider>
             <UserProvider>
               <ThemeProvider
