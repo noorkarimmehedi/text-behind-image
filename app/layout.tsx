@@ -17,10 +17,8 @@ export const metadata: Metadata = {
   description: "Create text behind image designs in seconds",
   icons: {
     icon: [
-      {
-        url: '/favicon.svg',
-        href: '/favicon.svg',
-      }
+      { rel: 'icon', url: '/favicon.ico' },
+      { rel: 'icon', url: '/favicon.svg', type: 'image/svg+xml' }
     ]
   }
 };
@@ -33,7 +31,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body className={GeistSans.className}>
         <SupabaseProvider>
