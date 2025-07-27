@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { FileUpload } from "@/components/ui/file-upload";
+import { ShineBorder } from "@/components/ui/shine-border";
 
 interface FileUploadDemoProps {
   onImageSelect: (file: File) => void;
@@ -15,8 +16,16 @@ export function FileUploadDemo({ onImageSelect, canUpload }: FileUploadDemoProps
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto min-h-96 border-2 border-black dark:border-white bg-background rounded-lg">
-      <FileUpload onChange={handleFileUpload} />
+    <div className="w-full max-w-4xl mx-auto min-h-96">
+      <ShineBorder
+        borderWidth={2}
+        borderRadius={16}
+        duration={8}
+        className="bg-white/5 backdrop-blur-md dark:bg-black/5"
+        color={["#FF007F", "#39FF14", "#00FFFF"]}
+      >
+        <FileUpload onChange={handleFileUpload} />
+      </ShineBorder>
     </div>
   );
 } 
