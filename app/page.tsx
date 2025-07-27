@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GeistMono } from 'geist/font';
 import SponsorshipBanner from '@/components/ui/sponsorship-banner';
+import { TextScramble } from '@/components/ui/text-scramble';
 
 const page = () => {
     return ( 
@@ -25,7 +26,14 @@ const page = () => {
                     >
                         <span>CREATE</span>
                         <Highlight className='text-white bg-red-600'>
-                            TEXT-BEHIND-IMAGE
+                            <TextScramble
+                                duration={1.2}
+                                speed={0.02}
+                                className="text-white"
+                                onHoverStart={() => true}
+                            >
+                                TEXT-BEHIND-IMAGE
+                            </TextScramble>
                         </Highlight>
                         <span>DESIGNS IN SECONDS</span>
                     </motion.div>
