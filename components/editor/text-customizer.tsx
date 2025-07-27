@@ -5,11 +5,7 @@ import ColorPicker from './color-picker';
 import FontFamilyPicker from './font-picker'; 
 import { Button } from '../ui/button';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import {
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Move, Text, Bold, RotateCw, Palette, LightbulbIcon, CaseSensitive, TypeOutline, ArrowLeftRight, ArrowUpDown, AlignHorizontalSpaceAround, LockIcon } from 'lucide-react';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
@@ -82,9 +78,11 @@ const TextCustomizer: React.FC<TextCustomizerProps> = ({ textSet, handleAttribut
     };
 
     return (
-        <AccordionItem value={`item-${textSet.id}`}>
-            <AccordionTrigger>{textSet.text}</AccordionTrigger>
-            <AccordionContent>
+        <Card className="w-full">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">{textSet.text}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
                 {/* Mobile Controls */}
                 <div className="md:hidden">
                     <ScrollArea className="w-full">
@@ -250,7 +248,7 @@ const TextCustomizer: React.FC<TextCustomizerProps> = ({ textSet, handleAttribut
                 </div>
 
                 {/* Desktop Layout */}
-                <div className="hidden md:block">
+                <div className="hidden md:block p-6">
                     <InputField
                         attribute="text"
                         label="Text"
@@ -361,12 +359,26 @@ const TextCustomizer: React.FC<TextCustomizerProps> = ({ textSet, handleAttribut
                     />
                 </div>
 
-                <div className="flex flex-row gap-2 my-8">
-                    <Button onClick={() => duplicateTextSet(textSet)}>Duplicate Text Set</Button>
-                    <Button variant="destructive" onClick={() => removeTextSet(textSet.id)}>Remove Text Set</Button>
+                <div className="flex flex-row gap-0 mt-4 border-t pt-4">
+                    <Button 
+                        variant="neomorphic"
+                        className="neomorphic-button scale-75 -mr-5"
+                        size="sm"
+                        onClick={() => duplicateTextSet(textSet)}
+                    >
+                        Duplicate Text Set
+                    </Button>
+                    <Button 
+                        variant="neomorphic"
+                        className="neomorphic-button scale-75 -ml-5"
+                        size="sm"
+                        onClick={() => removeTextSet(textSet.id)}
+                    >
+                        Remove Text Set
+                    </Button>
                 </div>
-            </AccordionContent>
-        </AccordionItem>
+            </CardContent>
+        </Card>
     );
 };
 

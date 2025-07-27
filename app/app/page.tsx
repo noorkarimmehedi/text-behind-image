@@ -25,13 +25,21 @@ import { removeBackground } from "@imgly/background-removal";
 import '@/app/fonts.css';
 import PayDialog from '@/components/pay-dialog';
 import AppAds from '@/components/editor/app-ads';
-import FirecrawlAd from '@/ads/firecrawl';
+import SponsorshipBanner from '@/components/ui/sponsorship-banner';
 
 const Page = () => {
     const { user } = useUser();
     const { session } = useSessionContext();
     const supabaseClient = useSupabaseClient();
-    const [currentUser, setCurrentUser] = useState<Profile>()
+    const [currentUser, setCurrentUser] = useState<Profile>({
+        id: 'guest',
+        username: 'guest',
+        full_name: 'Guest User',
+        avatar_url: '',
+        images_generated: 0,
+        paid: false,
+        subscription_id: ''
+    });
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isImageSetupDone, setIsImageSetupDone] = useState<boolean>(false);
@@ -61,12 +69,17 @@ const Page = () => {
     };
 
     const handleUploadImage = () => {
-        if (currentUser && (currentUser.images_generated < 2 || currentUser.paid)) {
+        // Allow guest users to try 1 image
+        if (!user || (currentUser && (currentUser.images_generated < 1))) {
+            if (fileInputRef.current) {
+                fileInputRef.current.click();
+            }
+        } else if (currentUser && (currentUser.images_generated < 2 || currentUser.paid)) {
             if (fileInputRef.current) {
                 fileInputRef.current.click();
             }
         } else {
-            alert("You have reached the limit of free generations.");
+            alert("You have reached the limit of free generations. Please sign in or upgrade for more.");
             setIsPayDialogOpen(true);
         }
     };
@@ -245,34 +258,105 @@ const Page = () => {
     return (
         <>
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1609710199882100" crossOrigin="anonymous"></script>
-            {user && session && session.user && currentUser ? (
-                <div className='flex flex-col h-screen'>
-                    {!currentUser.paid && (
-                        <FirecrawlAd />
-                    )}
-                    <header className='flex flex-row items-center justify-between p-5 px-10'>
-                        <h2 className="text-4xl md:text-2xl font-semibold tracking-tight">
-                            <span className="block md:hidden">TBI</span>
-                            <span className="hidden md:block">Text behind image editor</span>
-                        </h2>
-                        <div className='flex gap-4 items-center'>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                style={{ display: 'none' }}
-                                onChange={handleFileChange}
-                                accept=".jpg, .jpeg, .png"
-                            />
-                            <div className='flex items-center gap-5'>
-                                <div className='hidden md:block font-semibold'>
-                                    {currentUser.paid ? (
+            
+            {/* Mobile Warning Message */}
+            <div className="md:hidden flex flex-col items-center justify-center min-h-screen p-6 text-center bg-background">
+                <div className="text-4xl mb-6">💻</div>
+                <h2 className="text-2xl font-bold mb-4">Desktop Only</h2>
+                <p className="text-muted-foreground">
+                    Text Behind Image editor is optimized for desktop use. Please visit this page on a desktop or laptop computer for the best experience.
+                </p>
+            </div>
+
+            {/* Desktop Dashboard */}
+            <div className='hidden md:flex md:flex-col min-h-[calc(100vh-theme(spacing.32))]'>
+                {!currentUser.paid && (
+                    <div className="flex justify-center w-full mb-4">
+                        <SponsorshipBanner />
+                    </div>
+                )}
+                <header className='flex flex-row items-center justify-between p-5 px-10 bg-background'>
+                    <h2 className="text-2xl font-semibold">
+                        Text behind objects editor
+                    </h2>
+                    <div className='flex items-center gap-4'>
+                        <div className='font-semibold'>
+                            {user && currentUser.paid ? (
+                                <p className='text-sm'>
+                                    Unlimited generations
+                                </p>
+                            ) : (
+                                <div className='flex items-center gap-2'>
+                                    <p className='text-sm'>
+                                        {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
+                                    </p>
+                                    <Button 
+                                        variant="link" 
+                                        className="p-0 h-auto text-sm text-primary hover:underline"
+                                        onClick={() => setIsPayDialogOpen(true)}
+                                    >
+                                        {user ? 'Upgrade' : 'Sign in'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={handleFileChange}
+                            accept=".jpg, .jpeg, .png"
+                        />
+                        <div className='flex gap-0'>
+                            <Button 
+                                onClick={handleUploadImage}
+                                variant="neomorphic"
+                                className="neomorphic-button scale-75 -mr-3"
+                                size="sm"
+                            >
+                                Upload image
+                            </Button>
+                            {selectedImage && (
+                                <Button 
+                                    onClick={saveCompositeImage} 
+                                    variant="neomorphic"
+                                    className="neomorphic-button hidden md:flex scale-75 -ml-3"
+                                    size="sm"
+                                >
+                                    Save image
+                                </Button>
+                            )}
+                        </div>
+                        <ModeToggle />
+                        <Avatar className="cursor-pointer">
+                            <AvatarImage src={currentUser?.avatar_url} /> 
+                            <AvatarFallback>TBI</AvatarFallback>
+                        </Avatar>
+                    </div>
+                </header>
+                <Separator />
+                {selectedImage ? (
+                    <div className='flex flex-col md:flex-row items-start justify-start gap-10 w-full flex-1 px-10 mt-2 pb-8'>
+                        <div className="flex flex-col items-center justify-start w-full md:w-1/2 gap-4">
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            <div className='flex items-center gap-2'>
+                                <Button 
+                                    onClick={saveCompositeImage} 
+                                    variant="neomorphic"
+                                    className="neomorphic-button scale-75 md:hidden"
+                                    size="sm"
+                                >
+                                    Save image
+                                </Button>
+                                <div className='block md:hidden'>
+                                    {user && currentUser.paid ? (
                                         <p className='text-sm'>
                                             Unlimited generations
                                         </p>
                                     ) : (
-                                        <div className='flex items-center gap-2'>
+                                        <div className='flex items-center gap-5'>
                                             <p className='text-sm'>
-                                                {2 - (currentUser.images_generated)} generations left
+                                                {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
                                             </p>
                                             <Button 
                                                 variant="link" 
@@ -284,150 +368,85 @@ const Page = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className='flex gap-2'>
-                                    <Button onClick={handleUploadImage}>
-                                        Upload image
-                                    </Button>
-                                    {selectedImage && (
-                                        <Button onClick={saveCompositeImage} className='hidden md:flex'>
-                                            Save image
-                                        </Button>
-                                    )}
-                                </div>
                             </div>
-                            <ModeToggle />
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Avatar className="cursor-pointer">
-                                        <AvatarImage src={currentUser?.avatar_url} /> 
-                                        <AvatarFallback>TBI</AvatarFallback>
-                                    </Avatar>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56" align="end">
-                                    <DropdownMenuLabel>
-                                        <div className="flex flex-col space-y-1">
-                                            <p className="text-sm font-medium leading-none">{currentUser?.full_name}</p>
-                                            <p className="text-xs leading-none text-muted-foreground">{user?.user_metadata.email}</p>
-                                        </div>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => setIsPayDialogOpen(true)}>
-                                        <button>{currentUser?.paid ? 'View Plan' : 'Upgrade to Pro'}</button>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </header>
-                    <Separator /> 
-                    {selectedImage ? (
-                        <div className='flex flex-col md:flex-row items-start justify-start gap-10 w-full h-screen px-10 mt-2'>
-                            <div className="flex flex-col items-start justify-start w-full md:w-1/2 gap-4">
-                                <canvas ref={canvasRef} style={{ display: 'none' }} />
-                                <div className='flex items-center gap-2'>
-                                    <Button onClick={saveCompositeImage} className='md:hidden'>
-                                        Save image
-                                    </Button>
-                                    <div className='block md:hidden'>
-                                        {currentUser.paid ? (
-                                            <p className='text-sm'>
-                                                Unlimited generations
-                                            </p>
-                                        ) : (
-                                            <div className='flex items-center gap-5'>
-                                                <p className='text-sm'>
-                                                    {2 - (currentUser.images_generated)} generations left
-                                                </p>
-                                                <Button 
-                                                    variant="link" 
-                                                    className="p-0 h-auto text-sm text-primary hover:underline"
-                                                    onClick={() => setIsPayDialogOpen(true)}
-                                                >
-                                                    Upgrade
-                                                </Button>
-                                            </div>
-                                        )}
+                            <div className="min-h-[400px] w-full max-w-2xl mx-auto p-4 border border-border rounded-lg relative overflow-hidden">
+                                {isImageSetupDone ? (
+                                    <Image
+                                        src={selectedImage} 
+                                        alt="Uploaded"
+                                        layout="fill"
+                                        objectFit="contain" 
+                                        objectPosition="center" 
+                                    />
+                                ) : (
+                                    <span className='flex items-center w-full gap-2'><ReloadIcon className='animate-spin' /> Loading, please wait</span>
+                                )}
+                                {isImageSetupDone && textSets.map(textSet => (
+                                    <div
+                                        key={textSet.id}
+                                        style={{
+                                            position: 'absolute',
+                                            top: `${50 - textSet.top}%`,
+                                            left: `${textSet.left + 50}%`,
+                                            transform: `
+                                                translate(-50%, -50%) 
+                                                rotate(${textSet.rotation}deg)
+                                                perspective(1000px)
+                                                rotateX(${textSet.tiltX}deg)
+                                                rotateY(${textSet.tiltY}deg)
+                                            `,
+                                            color: textSet.color,
+                                            textAlign: 'center',
+                                            fontSize: `${textSet.fontSize}px`,
+                                            fontWeight: textSet.fontWeight,
+                                            fontFamily: textSet.fontFamily,
+                                            opacity: textSet.opacity,
+                                            letterSpacing: `${textSet.letterSpacing}px`,
+                                            transformStyle: 'preserve-3d'
+                                        }}
+                                    >
+                                        {textSet.text}
                                     </div>
-                                </div>
-                                <div className="min-h-[400px] w-[80%] p-4 border border-border rounded-lg relative overflow-hidden">
-                                    {isImageSetupDone ? (
-                                        <Image
-                                            src={selectedImage} 
-                                            alt="Uploaded"
-                                            layout="fill"
-                                            objectFit="contain" 
-                                            objectPosition="center" 
-                                        />
-                                    ) : (
-                                        <span className='flex items-center w-full gap-2'><ReloadIcon className='animate-spin' /> Loading, please wait</span>
-                                    )}
-                                    {isImageSetupDone && textSets.map(textSet => (
-                                        <div
-                                            key={textSet.id}
-                                            style={{
-                                                position: 'absolute',
-                                                top: `${50 - textSet.top}%`,
-                                                left: `${textSet.left + 50}%`,
-                                                transform: `
-                                                    translate(-50%, -50%) 
-                                                    rotate(${textSet.rotation}deg)
-                                                    perspective(1000px)
-                                                    rotateX(${textSet.tiltX}deg)
-                                                    rotateY(${textSet.tiltY}deg)
-                                                `,
-                                                color: textSet.color,
-                                                textAlign: 'center',
-                                                fontSize: `${textSet.fontSize}px`,
-                                                fontWeight: textSet.fontWeight,
-                                                fontFamily: textSet.fontFamily,
-                                                opacity: textSet.opacity,
-                                                letterSpacing: `${textSet.letterSpacing}px`,
-                                                transformStyle: 'preserve-3d'
-                                            }}
-                                        >
-                                            {textSet.text}
-                                        </div>
-                                    ))}
-                                    {removedBgImageUrl && (
-                                        <Image
-                                            src={removedBgImageUrl}
-                                            alt="Removed bg"
-                                            layout="fill"
-                                            objectFit="contain" 
-                                            objectPosition="center" 
-                                            className="absolute top-0 left-0 w-full h-full"
-                                        /> 
-                                    )}
-                                </div>
-                                {!currentUser.paid && (
-                                    <AppAds />
+                                ))}
+                                {removedBgImageUrl && (
+                                    <Image
+                                        src={removedBgImageUrl}
+                                        alt="Removed bg"
+                                        layout="fill"
+                                        objectFit="contain" 
+                                        objectPosition="center" 
+                                        className="absolute top-0 left-0 w-full h-full"
+                                    /> 
                                 )}
                             </div>
-                            <div className='flex flex-col w-full md:w-1/2'>
-                                <Button variant={'secondary'} onClick={addNewTextSet}><PlusIcon className='mr-2'/> Add New Text Set</Button>
-                                <ScrollArea className="h-[calc(100vh-10rem)] p-2">
-                                    <Accordion type="single" collapsible className="w-full mt-2">
-                                        {textSets.map(textSet => (
-                                            <TextCustomizer 
-                                                key={textSet.id}
-                                                textSet={textSet}
-                                                handleAttributeChange={handleAttributeChange}
-                                                removeTextSet={removeTextSet}
-                                                duplicateTextSet={duplicateTextSet}
-                                                userId={currentUser.id}
-                                            />
-                                        ))}
-                                    </Accordion>
-                                </ScrollArea>
+                            {!currentUser.paid && (
+                                <AppAds />
+                            )}
+                        </div>
+                        <div className='flex flex-col w-full md:w-1/2'>
+                            <Button variant={'secondary'} onClick={addNewTextSet}><PlusIcon className='mr-2'/> Add New Text Set</Button>
+                            <div className="mt-4 space-y-4 overflow-y-auto pb-8">
+                                {textSets.map(textSet => (
+                                    <TextCustomizer 
+                                        key={textSet.id}
+                                        textSet={textSet}
+                                        handleAttributeChange={handleAttributeChange}
+                                        removeTextSet={removeTextSet}
+                                        duplicateTextSet={duplicateTextSet}
+                                        userId={currentUser.id}
+                                    />
+                                ))}
                             </div>
                         </div>
-                    ) : (
-                        <div className='flex items-center justify-center min-h-screen w-full'>
-                            <h2 className="text-xl font-semibold">Welcome, get started by uploading an image!</h2>
-                        </div>
-                    )} 
-                    <PayDialog userDetails={currentUser as any} userEmail={user.user_metadata.email} isOpen={isPayDialogOpen} onClose={() => setIsPayDialogOpen(false)} /> 
-                </div>
-            ) : (
+                    </div>
+                ) : (
+                    <div className='flex items-center justify-center flex-1'>
+                        <h2 className="text-xl font-semibold">Welcome, get started by uploading an image!</h2>
+                    </div>
+                )} 
+                <PayDialog userDetails={currentUser as any} userEmail={user?.user_metadata.email} isOpen={isPayDialogOpen} onClose={() => setIsPayDialogOpen(false)} /> 
+            </div>
+            {isPayDialogOpen && (
                 <Authenticate />
             )}
         </>

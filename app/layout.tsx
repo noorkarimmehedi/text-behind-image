@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Inter } from 'next/font/google'
-import { GeistSans } from 'geist/font/sans';
+import { GeistSans, GeistMono } from 'geist/font';
 import "./globals.css";
 import SupabaseProvider from "@/providers/SupabaseProvider";
 import UserProvider from "@/providers/UserProvider";
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider";
+import { Footer } from "@/components/ui/footer-section";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={GeistSans.className}>
+      <body className={GeistSans.className} data-page="landing">
         <SupabaseProvider>
             <UserProvider>
               <ThemeProvider
@@ -32,8 +33,11 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
               >
-                <div>
-                  {children}
+                <div className="flex min-h-screen flex-col">
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <Footer />
                   <Analytics />
                   <SpeedInsights />
                   <Toaster />
