@@ -13,7 +13,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Separator } from '@/components/ui/separator';
 import { Accordion } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ModeToggle } from '@/components/mode-toggle';
 import { Profile } from '@/types';
 import Authenticate from '@/components/authenticate';
 import TextCustomizer from '@/components/editor/text-customizer';
@@ -26,6 +25,8 @@ import '@/app/fonts.css';
 import PayDialog from '@/components/pay-dialog';
 import AppAds from '@/components/editor/app-ads';
 import SponsorshipBanner from '@/components/ui/sponsorship-banner';
+import styles from '@/app/styles/upgrade-button.module.css';
+import { FileUploadDemo } from "@/components/ui/file-upload-demo";
 
 const Page = () => {
     const { user } = useUser();
@@ -279,7 +280,7 @@ const Page = () => {
                     <h2 className="text-2xl font-semibold">
                         Text behind objects editor
                     </h2>
-                    <div className='flex items-center gap-4'>
+                    <div className='flex items-center gap-0'>
                         <div className='font-semibold'>
                             {user && currentUser.paid ? (
                                 <p className='text-sm'>
@@ -290,13 +291,14 @@ const Page = () => {
                                     <p className='text-sm'>
                                         {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
                                     </p>
-                                    <Button 
-                                        variant="link" 
-                                        className="p-0 h-auto text-sm text-primary hover:underline"
+                                    <button 
+                                        className={styles.upgradeButton}
                                         onClick={() => setIsPayDialogOpen(true)}
                                     >
-                                        {user ? 'Upgrade' : 'Sign in'}
-                                    </Button>
+                                        <span className={styles.buttonTop}>
+                                            {user ? 'Upgrade' : 'Sign in'}
+                                        </span>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -327,7 +329,6 @@ const Page = () => {
                                 </Button>
                             )}
                         </div>
-                        <ModeToggle />
                         <Avatar className="cursor-pointer">
                             <AvatarImage src={currentUser?.avatar_url} /> 
                             <AvatarFallback>TBI</AvatarFallback>
@@ -358,13 +359,14 @@ const Page = () => {
                                             <p className='text-sm'>
                                                 {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
                                             </p>
-                                            <Button 
-                                                variant="link" 
-                                                className="p-0 h-auto text-sm text-primary hover:underline"
+                                            <button 
+                                                className={styles.upgradeButton}
                                                 onClick={() => setIsPayDialogOpen(true)}
                                             >
-                                                Upgrade
-                                            </Button>
+                                                <span className={styles.buttonTop}>
+                                                    Upgrade
+                                                </span>
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -441,7 +443,70 @@ const Page = () => {
                     </div>
                 ) : (
                     <div className='flex items-center justify-center flex-1'>
-                        <h2 className="text-xl font-semibold">Welcome, get started by uploading an image!</h2>
+                        {/* Main content area */}
+                        <div className="flex-1 p-8">
+                            {!selectedImage ? (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                    {/* Integration Guide:
+                                    This component uses:
+                                    - shadcn project structure
+                                    - Tailwind CSS for styling
+                                    - TypeScript for type safety
+                                    - framer-motion for animations
+                                    - react-dropzone for file handling
+                                    - @tabler/icons-react for icons
+                                    
+                                    The component supports:
+                                    - Drag and drop file upload
+                                    - Click to upload
+                                    - File size display
+                                    - File type display
+                                    - Last modified date
+                                    - Dark mode
+                                    - Responsive design
+                                    */}
+                                    <FileUploadDemo 
+                                        onImageSelect={(file) => {
+                                            const imageUrl = URL.createObjectURL(file);
+                                            setSelectedImage(imageUrl);
+                                            setupImage(imageUrl);
+                                        }}
+                                        canUpload={!user || (currentUser && (currentUser.images_generated < 1)) || 
+                                                 (currentUser && (currentUser.images_generated < 2 || currentUser.paid))}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                    {/* Integration Guide:
+                                    This component uses:
+                                    - shadcn project structure
+                                    - Tailwind CSS for styling
+                                    - TypeScript for type safety
+                                    - framer-motion for animations
+                                    - react-dropzone for file handling
+                                    - @tabler/icons-react for icons
+                                    
+                                    The component supports:
+                                    - Drag and drop file upload
+                                    - Click to upload
+                                    - File size display
+                                    - File type display
+                                    - Last modified date
+                                    - Dark mode
+                                    - Responsive design
+                                    */}
+                                    <FileUploadDemo 
+                                        onImageSelect={(file) => {
+                                            const imageUrl = URL.createObjectURL(file);
+                                            setSelectedImage(imageUrl);
+                                            setupImage(imageUrl);
+                                        }}
+                                        canUpload={!user || (currentUser && (currentUser.images_generated < 1)) || 
+                                                 (currentUser && (currentUser.images_generated < 2 || currentUser.paid))}
+                                    />
+                                </div>
+                            )} 
+                        </div>
                     </div>
                 )} 
                 <PayDialog userDetails={currentUser as any} userEmail={user?.user_metadata.email} isOpen={isPayDialogOpen} onClose={() => setIsPayDialogOpen(false)} /> 

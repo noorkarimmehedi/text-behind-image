@@ -1,0 +1,41 @@
+.upgradeButton {
+  /* Variables */
+  --button_radius: 0.5em;
+  --button_color: #ffffff;
+  --button_outline_color: #000000;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--button_radius);
+  background: var(--button_outline_color);
+  padding: 0;
+}
+
+.buttonTop {
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid var(--button_outline_color);
+  border-radius: var(--button_radius);
+  padding: 0.5em 1em;
+  background: var(--button_color);
+  color: var(--button_outline_color);
+  transform: translateY(-0.2em);
+  transition: transform 0.1s ease;
+}
+
+.upgradeButton:hover .buttonTop {
+  /* Pull the button upwards when hovered */
+  transform: translateY(-0.33em);
+}
+
+.upgradeButton:active .buttonTop {
+  /* Push the button downwards when pressed */
+  transform: translateY(0);
+}
+
+/* Dark mode support */
+:global(.dark) .upgradeButton {
+  --button_color: #1a1a1a;
+  --button_outline_color: #ffffff;
+} 
