@@ -29,9 +29,15 @@ import styles from '@/app/styles/upgrade-button.module.css';
 import { FileUploadDemo } from "@/components/ui/file-upload-demo";
 
 const Page = () => {
+    // Helper function to safely access user properties
+    const safeUserProperty = (property: keyof Profile, defaultValue: any = null) => {
+        return currentUser && currentUser[property] !== undefined ? currentUser[property] : defaultValue;
+    };
+    
     const { user } = useUser();
     const { session } = useSessionContext();
     const supabaseClient = useSupabaseClient();
+    const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true);
     const [currentUser, setCurrentUser] = useState<Profile>({
         id: 'guest',
         username: 'guest',
@@ -52,30 +58,79 @@ const Page = () => {
 
     const getCurrentUser = async (userId: string) => {
         try {
+            setIsLoadingUser(true);
+            console.log('Fetching user profile for ID:', userId);
+            
+            // Use single() to get a single row instead of an array
             const { data: profile, error } = await supabaseClient
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
+                .maybeSingle();
 
             if (error) {
+                console.error('Error fetching profile:', error);
                 throw error;
             }
 
+            console.log('Profile data from Supabase:', profile);
+            
             if (profile) {
-                setCurrentUser(profile[0]);
+                // Ensure all required properties exist with default values if missing
+                const safeProfile = {
+                    id: profile.id || 'guest',
+                    username: profile.username || 'guest',
+                    full_name: profile.full_name || 'Guest User',
+                    avatar_url: profile.avatar_url || '',
+                    images_generated: profile.images_generated || 0,
+                    paid: profile.paid || false,
+                    subscription_id: profile.subscription_id || ''
+                };
+                
+                console.log('Setting current user with images_generated:', safeProfile.images_generated);
+                setCurrentUser(safeProfile);
+            } else {
+                // If no profile found, create a new one for the user
+                const newProfile = {
+                    id: userId,
+                    username: 'user_' + userId.substring(0, 6),
+                    full_name: 'New User',
+                    avatar_url: '',
+                    images_generated: 0,
+                    paid: false,
+                    subscription_id: ''
+                };
+                
+                // Save the new profile to Supabase
+                const { error: insertError } = await supabaseClient
+                    .from('profiles')
+                    .insert([newProfile]);
+                    
+                if (insertError) {
+                    console.error('Error creating new profile:', insertError);
+                } else {
+                    setCurrentUser(newProfile);
+                }
             }
+            
+            // Set loading to false after profile is fetched or created
+            setIsLoadingUser(false);
         } catch (error) {
             console.error('Error fetching user profile:', error);
+            setIsLoadingUser(false);
         }
     };
 
     const handleUploadImage = () => {
         // Allow guest users to try 1 image
-        if (!user || (currentUser && (currentUser.images_generated < 1))) {
+        const imagesGenerated = safeUserProperty('images_generated', 0) as number;
+        const isPaid = safeUserProperty('paid', false) as boolean;
+        
+        if (!user || imagesGenerated < 1) {
             if (fileInputRef.current) {
                 fileInputRef.current.click();
             }
-        } else if (currentUser && (currentUser.images_generated < 2 || currentUser.paid)) {
+        } else if (imagesGenerated < 2 || isPaid) {
             if (fileInputRef.current) {
                 fileInputRef.current.click();
             }
@@ -101,12 +156,28 @@ const Page = () => {
             setRemovedBgImageUrl(url);
             setIsImageSetupDone(true);
 
-            if (currentUser) {
-                await supabaseClient
+            const userId = safeUserProperty('id') as string;
+            if (userId && userId !== 'guest') {
+                const currentCount = safeUserProperty('images_generated', 0) as number;
+                const newCount = currentCount + 1;
+                
+                // Update in Supabase
+                const { data, error } = await supabaseClient
                     .from('profiles')
-                    .update({ images_generated: currentUser.images_generated + 1 })
-                    .eq('id', currentUser.id) 
+                    .update({ images_generated: newCount })
+                    .eq('id', userId) 
                     .select();
+                    
+                if (!error && data) {
+                    // Update local state to reflect the change
+                    setCurrentUser(prevUser => ({
+                        ...prevUser,
+                        images_generated: newCount
+                    }));
+                    console.log('Updated image generation count:', newCount);
+                } else if (error) {
+                    console.error('Error updating image generation count:', error);
+                }
             }
             
         } catch (error) {
@@ -271,7 +342,7 @@ const Page = () => {
 
             {/* Desktop Dashboard */}
             <div className='hidden md:flex md:flex-col min-h-[calc(100vh-theme(spacing.32))]'>
-                {!currentUser.paid && (
+                {currentUser && !currentUser.paid && (
                     <div className="flex justify-center w-full mb-4">
                         <SponsorshipBanner />
                     </div>
@@ -282,14 +353,19 @@ const Page = () => {
                     </h2>
                     <div className='flex items-center gap-0'>
                         <div className='font-semibold'>
-                            {user && currentUser.paid ? (
+                            {isLoadingUser ? (
+                                <p className='text-sm flex items-center'>
+                                    <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                                    Loading...
+                                </p>
+                            ) : user && currentUser && currentUser.paid ? (
                                 <p className='text-sm'>
                                     Unlimited generations
                                 </p>
                             ) : (
                                 <div className='flex items-center gap-2'>
                                     <p className='text-sm'>
-                                        {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
+                                        {user ? `${2 - (currentUser && currentUser.images_generated || 0)} generations left` : '1 free generation (guest)'}
                                     </p>
                                     <button 
                                         className={styles.upgradeButton}
@@ -329,10 +405,32 @@ const Page = () => {
                                 </Button>
                             )}
                         </div>
-                        <Avatar className="cursor-pointer">
-                            <AvatarImage src={currentUser?.avatar_url} /> 
-                            <AvatarFallback>TBI</AvatarFallback>
-                        </Avatar>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <div className="flex items-center justify-center cursor-pointer rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[2px] hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                    <Avatar className="h-8 w-8 bg-white rounded-full">
+                                        <AvatarImage src={safeUserProperty('avatar_url', '')} className="object-cover" /> 
+                                        <AvatarFallback className="bg-white text-gray-800 font-medium text-sm">
+                                            {safeUserProperty('username', 'User').substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel className="flex flex-col">
+                                    <span className="font-medium">{safeUserProperty('full_name', 'User')}</span>
+                                    <span className="text-xs text-gray-500 truncate">{user?.email || 'No email available'}</span>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => {
+                                    supabaseClient.auth.signOut().then(() => {
+                                        window.location.href = '/';
+                                    });
+                                }}>
+                                    Sign out
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
                 <Separator />
@@ -350,14 +448,19 @@ const Page = () => {
                                     Save image
                                 </Button>
                                 <div className='block md:hidden'>
-                                    {user && currentUser.paid ? (
+                                    {isLoadingUser ? (
+                                        <p className='text-sm flex items-center'>
+                                            <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                                            Loading...
+                                        </p>
+                                    ) : user && currentUser && currentUser.paid ? (
                                         <p className='text-sm'>
                                             Unlimited generations
                                         </p>
                                     ) : (
                                         <div className='flex items-center gap-5'>
                                             <p className='text-sm'>
-                                                {user ? `${2 - (currentUser.images_generated)} generations left` : '1 free generation (guest)'}
+                                                {user ? `${2 - (currentUser && currentUser.images_generated || 0)} generations left` : '1 free generation (guest)'}
                                             </p>
                                             <button 
                                                 className={styles.upgradeButton}
@@ -421,7 +524,7 @@ const Page = () => {
                                     /> 
                                 )}
                             </div>
-                            {!currentUser.paid && (
+                            {currentUser && !currentUser.paid && (
                                 <AppAds />
                             )}
                         </div>
@@ -435,7 +538,7 @@ const Page = () => {
                                         handleAttributeChange={handleAttributeChange}
                                         removeTextSet={removeTextSet}
                                         duplicateTextSet={duplicateTextSet}
-                                        userId={currentUser.id}
+                                        userId={safeUserProperty('id', 'guest') as string}
                                     />
                                 ))}
                             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from "framer-motion";
 import { HeroHighlight, Highlight } from '@/components/ui/hero-highlight';
 import { HeroImages } from '@/components/hero-images';
@@ -10,8 +10,20 @@ import { Button } from '@/components/ui/button';
 import { GeistMono } from 'geist/font';
 import SponsorshipBanner from '@/components/ui/sponsorship-banner';
 import { TextScramble } from '@/components/ui/text-scramble';
+import { useRouter } from 'next/navigation';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import Authenticate from '@/components/authenticate';
+import { AlertDialog, AlertDialogContent, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const page = () => {
+    const router = useRouter();
+    const supabaseClient = useSupabaseClient();
+    const [showAuth, setShowAuth] = useState(false);
+    
+    // Simply show auth dialog when user clicks "Open the app"
+    const handleOpenApp = () => {
+        setShowAuth(true);
+    };
     return ( 
         <div className='flex flex-col min-h-screen items-center w-full'>
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1609710199882100" crossOrigin="anonymous"></script>
@@ -43,11 +55,28 @@ const page = () => {
                     550,000+ text behind image designs created
                 </div>
 
-                <Link href={'/app'} className='flex justify-center mt-6'>
-                    <Button variant="neomorphic" className="neomorphic-button">
-                        Open the app
-                    </Button>
-                </Link>
+                <div className='flex justify-center mt-6'>
+                    <AlertDialog open={showAuth} onOpenChange={setShowAuth}>
+                        <AlertDialogTrigger asChild>
+                            <Button 
+                                variant="neomorphic" 
+                                className="neomorphic-button"
+                                onClick={handleOpenApp}
+                            >
+                                Open the app
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="p-0 border-none bg-transparent">
+                            <Authenticate 
+                                onSuccess={() => {
+                                    setShowAuth(false);
+                                    router.push('/app');
+                                }} 
+                                onClose={() => setShowAuth(false)}
+                            />
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </div>
 
             {/* Mobile badges container */}
