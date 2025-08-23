@@ -234,6 +234,21 @@ const Page = () => {
         setTextSets(prev => prev.filter(set => set.id !== id));
     };
 
+    // Navigate back to the upload dashboard by resetting editor state
+    const goToUploadDashboard = () => {
+        setSelectedImage(null);
+        setRemovedBgImageUrl(null);
+        setIsImageSetupDone(false);
+        setTextSets([]);
+        if (fileInputRef.current) {
+            // clear file input so the same file can be reselected if desired
+            fileInputRef.current.value = '' as any;
+        }
+        try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch {}
+    };
+
     const saveCompositeImage = () => {
         if (!canvasRef.current || !isImageSetupDone) return;
     
@@ -361,7 +376,11 @@ const Page = () => {
                     </div>
                 )}
                 <header className='flex flex-row items-center justify-between p-5 px-10 bg-background'>
-                    <h2 className="text-2xl font-semibold">
+                    <h2
+                        className="text-2xl font-semibold cursor-pointer hover:opacity-80 transition"
+                        title="Back to upload dashboard"
+                        onClick={goToUploadDashboard}
+                    >
                         Text behind objects editor
                     </h2>
                     <div className='flex items-center gap-0'>
