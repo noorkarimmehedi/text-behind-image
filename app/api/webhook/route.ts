@@ -74,15 +74,59 @@ export async function POST(req: Request) {
 
         // Upsert to guarantee the row exists and is marked paid
         console.log('[STRIPE WEBHOOK] Upserting user profile:', { userId, email, subscriptionId });
-        const { data, error } = await supabaseAdmin
+        
+        // First check if the user exists
+        const { data: existingUser, error: fetchError } = await supabaseAdmin
           .from('profiles')
-          .upsert({
-            id: userId,
-            email,
-            paid: true,
-            subscription_id: subscriptionId ?? ''
-          }, { onConflict: 'id' });
-        console.log('[STRIPE WEBHOOK] Upsert result:', { data, error });
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+          
+        if (fetchError) {
+          console.error('[STRIPE WEBHOOK] Error fetching user:', fetchError);
+          throw fetchError;
+        }
+        
+        // If user exists, update their profile with paid status
+        if (existingUser) {
+          console.log('[STRIPE WEBHOOK] Existing user found, updating:', existingUser);
+          const { data, error } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              paid: true,
+              subscription_id: subscriptionId ?? ''
+            })
+            .eq('id', userId);
+            
+          console.log('[STRIPE WEBHOOK] Update result:', { data, error });
+          
+          if (error) {
+            console.error('[STRIPE WEBHOOK] Error updating user:', error);
+            throw error;
+          }
+        } else {
+          // If user doesn't exist (unlikely), create a new profile
+          console.log('[STRIPE WEBHOOK] No existing user found, creating new profile');
+          const { data, error } = await supabaseAdmin
+            .from('profiles')
+            .upsert({
+              id: userId,
+              email,
+              paid: true,
+              subscription_id: subscriptionId ?? '',
+              username: email ? email.split('@')[0] : 'user',
+              full_name: email ? email.split('@')[0] : 'User',
+              avatar_url: '',
+              images_generated: 0
+            }, { onConflict: 'id' });
+            
+          console.log('[STRIPE WEBHOOK] Upsert result:', { data, error });
+          
+          if (error) {
+            console.error('[STRIPE WEBHOOK] Error upserting user:', error);
+            throw error;
+          }
+        }
       }
     } catch (error) {  
       console.log(error);

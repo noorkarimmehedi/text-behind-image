@@ -386,23 +386,85 @@ const Page = () => {
         const fromCheckout = params.get('checkout') === 'success';
         if (!fromCheckout || !user?.id) return;
 
+        // Show loading toast
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md z-50';
+        toast.innerHTML = '<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Processing your payment...</span></div>';
+        document.body.appendChild(toast);
+
         // Immediately refetch once
         getCurrentUser(user.id);
 
-        // Then poll for up to ~60 seconds
+        // Then poll for up to ~60 seconds with exponential backoff
         const start = Date.now();
-        const interval = setInterval(async () => {
-          // Stop if already paid or timed out
-          if (currentUser?.paid || Date.now() - start > 60000) {
-            clearInterval(interval);
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const checkStatus = async () => {
+          if (attempts >= maxAttempts) {
+            // Remove toast after max attempts
+            document.body.removeChild(toast);
             return;
           }
-          await getCurrentUser(user.id);
-        }, 2000);
-
-        return () => clearInterval(interval);
+          
+          attempts++;
+          
+          // Calculate delay with exponential backoff (2s, 4s, 8s, etc.)
+          const delay = Math.min(2000 * Math.pow(1.5, attempts), 10000);
+          
+          try {
+            await getCurrentUser(user.id);
+            
+            // If paid status updated, show success and stop polling
+            if (currentUser?.paid) {
+              // Update toast to success message
+              toast.innerHTML = '<div class="flex items-center"><svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Payment successful! Your account has been upgraded.</span></div>';
+              
+              // Remove toast after 5 seconds
+              setTimeout(() => {
+                if (document.body.contains(toast)) {
+                  document.body.removeChild(toast);
+                }
+              }, 5000);
+              
+              return;
+            }
+            
+            // If we've been polling for more than 60 seconds, stop
+            if (Date.now() - start > 60000) {
+              // Update toast to timeout message
+              toast.innerHTML = '<div class="flex items-center"><svg class="h-5 w-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>Payment is still processing. Please refresh the page in a few minutes.</span></div>';
+              
+              // Remove toast after 10 seconds
+              setTimeout(() => {
+                if (document.body.contains(toast)) {
+                  document.body.removeChild(toast);
+                }
+              }, 10000);
+              
+              return;
+            }
+            
+            // Schedule next check with exponential backoff
+            setTimeout(checkStatus, delay);
+          } catch (error) {
+            console.error('Error checking payment status:', error);
+            // Continue polling despite errors
+            setTimeout(checkStatus, delay);
+          }
+        };
+        
+        // Start the polling process
+        setTimeout(checkStatus, 2000);
+        
+        return () => {
+          // Clean up toast if component unmounts
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        };
       } catch (e) {
-        // ignore
+        console.error('Error in checkout success handler:', e);
       }
     }, [user?.id]);
     
@@ -442,14 +504,34 @@ const Page = () => {
                                     Loading...
                                 </p>
                             ) : user && currentUser && currentUser.paid ? (
-                                <p className='text-sm'>
-                                    Unlimited generations
-                                </p>
+                                <div className='flex items-center gap-2'>
+                                    <p className='text-sm'>
+                                        Unlimited generations
+                                    </p>
+                                    <button 
+                                        className='text-xs text-blue-500 hover:text-blue-700 flex items-center'
+                                        onClick={() => user && getCurrentUser(user.id)}
+                                        title="Refresh subscription status"
+                                    >
+                                        <ReloadIcon className="h-3 w-3 mr-1" />
+                                        Refresh
+                                    </button>
+                                </div>
                             ) : (
                                 <div className='flex items-center gap-2'>
                                     <p className='text-sm'>
                                         {user ? `${2 - (currentUser && currentUser.images_generated || 0)} generations left` : '1 free generation (guest)'}
                                     </p>
+                                    {user && (
+                                        <button 
+                                            className='text-xs text-blue-500 hover:text-blue-700 flex items-center mr-2'
+                                            onClick={() => user && getCurrentUser(user.id)}
+                                            title="Refresh subscription status"
+                                        >
+                                            <ReloadIcon className="h-3 w-3 mr-1" />
+                                            Refresh
+                                        </button>
+                                    )}
                                     <button 
                                         className={styles.upgradeButton}
                                         onClick={() => setIsPayDialogOpen(true)}
@@ -537,20 +619,40 @@ const Page = () => {
                                             Loading...
                                         </p>
                                     ) : user && currentUser && currentUser.paid ? (
-                                        <p className='text-sm'>
-                                            Unlimited generations
-                                        </p>
+                                        <div className='flex items-center gap-2'>
+                                            <p className='text-sm'>
+                                                Unlimited generations
+                                            </p>
+                                            <button 
+                                                className='text-xs text-blue-500 hover:text-blue-700 flex items-center'
+                                                onClick={() => user && getCurrentUser(user.id)}
+                                                title="Refresh subscription status"
+                                            >
+                                                <ReloadIcon className="h-3 w-3 mr-1" />
+                                                Refresh
+                                            </button>
+                                        </div>
                                     ) : (
                                         <div className='flex items-center gap-5'>
                                             <p className='text-sm'>
                                                 {user ? `${2 - (currentUser && currentUser.images_generated || 0)} generations left` : '1 free generation (guest)'}
                                             </p>
+                                            {user && (
+                                                <button 
+                                                    className='text-xs text-blue-500 hover:text-blue-700 flex items-center mr-2'
+                                                    onClick={() => user && getCurrentUser(user.id)}
+                                                    title="Refresh subscription status"
+                                                >
+                                                    <ReloadIcon className="h-3 w-3 mr-1" />
+                                                    Refresh
+                                                </button>
+                                            )}
                                             <button 
                                                 className={styles.upgradeButton}
                                                 onClick={() => setIsPayDialogOpen(true)}
                                             >
                                                 <span className={styles.buttonTop}>
-                                                    Upgrade
+                                                    {user ? 'Upgrade' : 'Sign in'}
                                                 </span>
                                             </button>
                                         </div>
