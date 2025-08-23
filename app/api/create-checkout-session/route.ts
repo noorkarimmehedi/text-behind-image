@@ -1,4 +1,4 @@
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 // Expected env vars:
 // - STRIPE_MONTHLY_PRODUCT_ID
@@ -24,10 +24,8 @@ export async function POST(req: Request) {
     }
 
     // Amounts based on your plans
-    // Note: You specified $9.00 per month and $7.00 per year.
-    // If $7 is intended as per year total, we will set unit_amount = 700 for yearly.
-    // Adjust here if you actually want $84/year (i.e., $7 per month billed yearly).
-    const unitAmount = isAnnual ? 7 * 100 : 9 * 100; // cents
+    // Monthly: $9.00/month, Annual: $84.00/year (i.e., $7/mo billed yearly)
+    const unitAmount = isAnnual ? 84 * 100 : 9 * 100; // cents
     const interval: 'month' | 'year' = isAnnual ? 'year' : 'month';
     const product = isAnnual ? ANNUAL_PRODUCT_ID : MONTHLY_PRODUCT_ID;
 
@@ -35,6 +33,7 @@ export async function POST(req: Request) {
     const siteUrlFromEnv = process.env.NEXT_PUBLIC_SITE_URL;
     const origin = siteUrlFromEnv || new URL(req.url).origin;
 
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
       mode: 'subscription',

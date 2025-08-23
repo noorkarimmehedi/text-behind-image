@@ -1,18 +1,14 @@
 import type { Stripe } from "stripe";
 
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '', 
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-)
 
 export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(
       await (await req.blob()).text(),
       req.headers.get("stripe-signature") as string,
@@ -57,6 +53,14 @@ export async function POST(req: Request) {
       if (success) {
         const stripeDataJSON = JSON.parse(JSON.stringify(stripeData));
         console.log(stripeDataJSON)
+
+        // Lazily create Supabase admin client to avoid build-time env issues
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !serviceRole) {
+          throw new Error("Supabase admin env vars missing for webhook");
+        }
+        const supabaseAdmin = createClient(url, serviceRole);
 
         await supabaseAdmin
           .from('profiles') 
