@@ -3,6 +3,7 @@ import React from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FrameIcon, InstagramIcon, TwitterIcon } from 'lucide-react';
+import Image from 'next/image';
 
 interface FooterLink {
 	title: string;
@@ -46,7 +47,14 @@ export function Footer() {
 
 			<div className="grid w-full gap-8 xl:grid-cols-3 xl:gap-8">
 				<AnimatedContainer className="space-y-4">
-					<FrameIcon className="size-8" />
+					<Image
+						src="/favicon.svg"
+						alt="Site logo"
+						width={32}
+						height={32}
+						className="size-8"
+						priority
+					/>
 					<p className="text-muted-foreground mt-8 text-sm md:mt-0">
 						© {new Date().getFullYear()} Text Behind Objects. All rights reserved.
 					</p>

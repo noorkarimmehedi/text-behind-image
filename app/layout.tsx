@@ -31,8 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        {/* Prefer SVG favicon; keep ICO as fallback. Cache-bust with v=2 */}
+        <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className={GeistSans.className}>
         <SupabaseProvider>

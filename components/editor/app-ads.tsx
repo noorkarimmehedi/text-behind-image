@@ -14,7 +14,7 @@ const AppAds = () => {
             <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                     <div className="text-4xl mb-4">✨</div>
-                    <Link href="/sponsor" className="hover:underline">
+                    <Link href="https://tally.so/r/npEpr1" target="_blank" rel="noopener noreferrer" className="hover:underline">
                         <div className="text-xl font-semibold mb-2">
                             Want to sponsor this spot?
                         </div>

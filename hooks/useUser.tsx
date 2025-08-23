@@ -33,7 +33,13 @@ export const MyUserContextProvider = (props: Props) => {
     const [isLoadingData, setIsLoadingData] = useState(false)
     const [userDetails, setUserDetails] = useState<Profile | null>(null)
 
-    const getUserDetails = () => supabase.from('users').select('*').single()
+    // Fetch the current user's profile from the 'profiles' table
+    const getUserDetails = () =>
+        supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user?.id as string)
+            .single()
 
     useEffect(() => {
         if (user && !isLoadingData && !userDetails) {

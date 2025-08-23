@@ -18,7 +18,7 @@ const SponsorshipBanner = () => {
           </div>
           <div className="flex flex-col items-center justify-center">
             <p className="text-sm md:hidden text-center">
-              <Link href="/sponsor" className="hover:underline">
+              <Link href="https://tally.so/r/npEpr1" target="_blank" rel="noopener noreferrer" className="hover:underline">
                 <strong>Want to sponsor this spot? </strong>
                 Apply for top section sponsorship
                 <span className='text-xs px-2 text-muted-foreground'>
@@ -28,7 +28,7 @@ const SponsorshipBanner = () => {
             </p>
             <div className="hidden md:block">
               <p className="text-base text-center">
-                <Link href="/sponsor" className="hover:underline">
+                <Link href="https://tally.so/r/npEpr1" target="_blank" rel="noopener noreferrer" className="hover:underline">
                   <strong>Want to sponsor this spot? </strong>
                   Apply for top section sponsorship
                   <span className='text-xs px-2 text-muted-foreground'>

@@ -27,6 +27,7 @@ import AppAds from '@/components/editor/app-ads';
 import SponsorshipBanner from '@/components/ui/sponsorship-banner';
 import styles from '@/app/styles/upgrade-button.module.css';
 import { FileUploadDemo } from "@/components/ui/file-upload-demo";
+import { WaveLoader } from "@/components/ui/wave-loader";
 
 const Page = () => {
     // Helper function to safely access user properties
@@ -77,10 +78,11 @@ const Page = () => {
             
             if (profile) {
                 // Ensure all required properties exist with default values if missing
+                const emailUsername = (user?.email || '').split('@')[0] || 'user';
                 const safeProfile = {
                     id: profile.id || 'guest',
-                    username: profile.username || 'guest',
-                    full_name: profile.full_name || 'Guest User',
+                    username: profile.username || emailUsername,
+                    full_name: profile.full_name || emailUsername,
                     avatar_url: profile.avatar_url || '',
                     images_generated: profile.images_generated || 0,
                     paid: profile.paid || false,
@@ -91,10 +93,11 @@ const Page = () => {
                 setCurrentUser(safeProfile);
             } else {
                 // If no profile found, create a new one for the user
+                const emailUsername = (user?.email || '').split('@')[0] || 'user';
                 const newProfile = {
                     id: userId,
-                    username: 'user_' + userId.substring(0, 6),
-                    full_name: 'New User',
+                    username: emailUsername,
+                    full_name: emailUsername,
                     avatar_url: '',
                     images_generated: 0,
                     paid: false,
@@ -108,6 +111,8 @@ const Page = () => {
                     
                 if (insertError) {
                     console.error('Error creating new profile:', insertError);
+                    // Still set local state so UI shows correct name immediately
+                    setCurrentUser(newProfile);
                 } else {
                     setCurrentUser(newProfile);
                 }
@@ -117,6 +122,14 @@ const Page = () => {
             setIsLoadingUser(false);
         } catch (error) {
             console.error('Error fetching user profile:', error);
+            // Fall back to showing email username so UI doesn't stay as Guest
+            const emailUsername = (user?.email || '').split('@')[0] || 'user';
+            setCurrentUser(prev => ({
+                ...prev,
+                id: userId,
+                username: emailUsername,
+                full_name: emailUsername,
+            }));
             setIsLoadingUser(false);
         }
     };
@@ -484,7 +497,9 @@ const Page = () => {
                                         objectPosition="center" 
                                     />
                                 ) : (
-                                    <span className='flex items-center w-full gap-2'><ReloadIcon className='animate-spin' /> Loading, please wait</span>
+                                    <div className='flex items-center justify-center w-full h-[360px]'>
+                                        <WaveLoader bars={6} message="Preparing your image..." />
+                                    </div>
                                 )}
                                 {isImageSetupDone && textSets.map(textSet => (
                                     <div

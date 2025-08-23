@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { supabase } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Eye, EyeOff, Key, X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import Link from "next/link";
 
 interface AuthenticateProps {
@@ -43,7 +43,6 @@ const Logo = (props: React.SVGProps<SVGSVGElement>) => (
 
 const Authenticate = ({ onSuccess, onClose }: AuthenticateProps = {}) => {
   const router = useRouter();
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -302,10 +301,7 @@ const Authenticate = ({ onSuccess, onClose }: AuthenticateProps = {}) => {
                   Sign In
                 </Button>
                 
-                <Button variant="outline" className="w-full" type="button">
-                  <Key className="mr-2 h-4 w-4" />
-                  Single sign-on (SSO)
-                </Button>
+                {/* SSO button removed per request */}
               </div>
             </form>
           </TabsContent>
