@@ -4,13 +4,19 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
+// Ensure this runs on Node, not Edge, and is always dynamic for Stripe signature
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
     const stripe = getStripe();
+    // Use the raw text body for signature verification
+    const rawBody = await req.text();
     event = stripe.webhooks.constructEvent(
-      await (await req.blob()).text(),
+      rawBody,
       req.headers.get("stripe-signature") as string,
       process.env.STRIPE_WEBHOOK_SECRET as string,
     );
@@ -62,13 +68,21 @@ export async function POST(req: Request) {
         }
         const supabaseAdmin = createClient(url, serviceRole);
 
-        await supabaseAdmin
-          .from('profiles') 
-          .update({  
+        const userId = stripeDataJSON.metadata.user_id as string;
+        const subscriptionId = stripeDataJSON.subscription as string | null;
+        const email = stripeDataJSON.customer_email || (stripeDataJSON.customer_details && stripeDataJSON.customer_details.email) || null;
+
+        // Upsert to guarantee the row exists and is marked paid
+        console.log('[STRIPE WEBHOOK] Upserting user profile:', { userId, email, subscriptionId });
+        const { data, error } = await supabaseAdmin
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email,
             paid: true,
-            subscription_id: stripeDataJSON.subscription
-          })    
-          .eq('id', stripeDataJSON.metadata.user_id)
+            subscription_id: subscriptionId ?? ''
+          }, { onConflict: 'id' });
+        console.log('[STRIPE WEBHOOK] Upsert result:', { data, error });
       }
     } catch (error) {  
       console.log(error);

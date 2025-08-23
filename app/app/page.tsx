@@ -354,6 +354,57 @@ const Page = () => {
         getCurrentUser(user.id)
       }
     }, [user])
+
+    // Ensure we react to auth state changes (e.g., after returning from Stripe or login)
+    useEffect(() => {
+      const { data: sub } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+        const uid = session?.user?.id;
+        if (uid) {
+          getCurrentUser(uid);
+        }
+      });
+      return () => {
+        sub.subscription.unsubscribe();
+      };
+    }, [supabaseClient])
+
+    // Refetch when tab becomes visible again (covers return-from-checkout case)
+    useEffect(() => {
+      const onVisible = () => {
+        if (document.visibilityState === 'visible' && user?.id) {
+          getCurrentUser(user.id);
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [user?.id])
+
+    // When returning from Stripe checkout success, poll for updated paid status
+    useEffect(() => {
+      try {
+        const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+        const fromCheckout = params.get('checkout') === 'success';
+        if (!fromCheckout || !user?.id) return;
+
+        // Immediately refetch once
+        getCurrentUser(user.id);
+
+        // Then poll for up to ~60 seconds
+        const start = Date.now();
+        const interval = setInterval(async () => {
+          // Stop if already paid or timed out
+          if (currentUser?.paid || Date.now() - start > 60000) {
+            clearInterval(interval);
+            return;
+          }
+          await getCurrentUser(user.id);
+        }, 2000);
+
+        return () => clearInterval(interval);
+      } catch (e) {
+        // ignore
+      }
+    }, [user?.id]);
     
     return (
         <>

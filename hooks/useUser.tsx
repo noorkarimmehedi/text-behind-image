@@ -34,28 +34,58 @@ export const MyUserContextProvider = (props: Props) => {
     const [userDetails, setUserDetails] = useState<Profile | null>(null)
 
     // Fetch the current user's profile from the 'profiles' table
-    const getUserDetails = () =>
-        supabase
+    const getUserDetails = async () => {
+        return await supabase
             .from('profiles')
             .select('*')
             .eq('id', user?.id as string)
-            .single()
+            .single();
+    }
 
     useEffect(() => {
+        let didTimeout = false;
+        let timeoutId: NodeJS.Timeout | null = null;
+
+        const finishLoading = () => {
+            if (!didTimeout) {
+                setIsLoadingData(false);
+            }
+        };
+
+        async function fetchWithTimeout(promise: Promise<any>, ms: number) {
+            let timeout: NodeJS.Timeout;
+            const timeoutPromise = new Promise((_resolve, reject) => {
+                timeout = setTimeout(() => {
+                    reject(new Error('Supabase profile fetch timed out'));
+                }, ms);
+            });
+            try {
+                const result = await Promise.race([promise, timeoutPromise]);
+                clearTimeout(timeout!);
+                return result;
+            } catch (err) {
+                clearTimeout(timeout!);
+                throw err;
+            }
+        }
+
         if (user && !isLoadingData && !userDetails) {
-            setIsLoadingData(true)
-
-            Promise.allSettled([getUserDetails()]).then(
-                (results) => {
-                    const userDetailsPromise = results[0];
-
-                    if (userDetailsPromise.status === "fulfilled") {
-                        setUserDetails(userDetailsPromise.value.data as Profile);
+            setIsLoadingData(true);
+            fetchWithTimeout(getUserDetails(), 5000)
+                .then((result) => {
+                    if (result && result.data) {
+                        setUserDetails(result.data as Profile);
+                    } else {
+                        setUserDetails(null);
+                        console.error('Supabase returned no profile data:', result);
                     }
-
-                    setIsLoadingData(false)
-                }
-            )
+                    finishLoading();
+                })
+                .catch((err) => {
+                    setUserDetails(null);
+                    finishLoading();
+                    console.error('Supabase profile fetch failed or timed out:', err);
+                });
         } else if (!user && !isLoadingUser && !isLoadingData) {
             setUserDetails(null);
         }

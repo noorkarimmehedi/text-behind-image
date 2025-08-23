@@ -1,9 +1,5 @@
 'use client';
 
-import { redirect } from 'next/navigation';
-import { useUser } from '@/hooks/useUser';
-import { useSessionContext } from '@supabase/auth-helpers-react';
-
 export default function AppLayout({
   children,
 }: {
@@ -14,4 +10,4 @@ export default function AppLayout({
       {children}
     </div>
   );
-} 
+}

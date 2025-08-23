@@ -19,6 +19,8 @@ export async function POST(req: Request) {
 
     const MONTHLY_PRODUCT_ID = process.env.STRIPE_MONTHLY_PRODUCT_ID;
     const ANNUAL_PRODUCT_ID = process.env.STRIPE_ANNUAL_PRODUCT_ID;
+    const MONTHLY_PRICE_ID = process.env.STRIPE_MONTHLY_PRICE_ID;
+    const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID;
     if (!MONTHLY_PRODUCT_ID || !ANNUAL_PRODUCT_ID) {
       return Response.json({ error: 'Missing Stripe product IDs in env' }, { status: 500 });
     }
@@ -34,10 +36,16 @@ export async function POST(req: Request) {
     const origin = siteUrlFromEnv || new URL(req.url).origin;
 
     const stripe = getStripe();
+    const usePriceId = isAnnual ? ANNUAL_PRICE_ID : MONTHLY_PRICE_ID;
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
       mode: 'subscription',
-      line_items: [
+      line_items: usePriceId ? [
+        {
+          price: usePriceId,
+          quantity: 1,
+        },
+      ] : [
         {
           price_data: {
             currency: 'usd',
@@ -52,8 +60,8 @@ export async function POST(req: Request) {
         user_id,
         plan_type,
       },
-      success_url: `${origin}/app`,
-      cancel_url: `${origin}/app`,
+      success_url: `${origin}/app?checkout=success`,
+      cancel_url: `${origin}/app?checkout=cancelled`,
     });
 
     return Response.json({ paymentLink: session.url });
